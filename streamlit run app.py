@@ -7,103 +7,109 @@ import numpy as np
 import plotly.graph_objects as go
 from datetime import datetime
 
-# --- CONFIGURATION ---
+# --- CONFIGURATION (16:9 Wide Layout) ---
 st.set_page_config(
-    page_title="NagataGuide",
+    page_title="NagataGuide Pro",
     page_icon="🦻",
-    layout="centered",
-    initial_sidebar_state="collapsed"
+    layout="wide",  # 16:9 Ratio
+    initial_sidebar_state="expanded"
 )
 
-# --- CUSTOM CSS (CLINICAL THEME) ---
-# Enforcing Surgical Blue (#2563EB) and Inter font styles
+# --- CUSTOM CSS (DASHBOARD & BACKGROUND) ---
 st.markdown("""
     <style>
-        /* Import Inter font */
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-        html, body, [class*="css"]  {
-            font-family: 'Inter', sans-serif;
+        /* MAIN BACKGROUND - Surgical Abstract */
+        .stApp {
+            background-image: url("https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?q=80&w=2070&auto=format&fit=crop");
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
         }
 
-        /* Primary Button Styling */
-        div.stButton > button:first-child {
-            background-color: #2563EB;
-            color: white;
-            border-radius: 8px;
-            padding: 0.75rem 1.5rem;
-            font-weight: 600;
-            border: none;
+        /* OVERLAY to darken background for readability */
+        .stApp::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
-        }
-        div.stButton > button:first-child:hover {
-            background-color: #1D4ED8;
-            border: none;
-        }
-
-        /* Expander Styling */
-        .streamlit-expanderHeader {
-            font-weight: 600;
-            color: #374151;
+            height: 100%;
+            background: rgba(17, 24, 39, 0.4); /* Dark overlay */
+            pointer-events: none;
+            z-index: 0;
         }
 
-        /* Success Message */
-        .stAlert {
-            background-color: #F0FDF4;
-            border: 1px solid #BBF7D0;
-            color: #166534;
+        /* TEXT VISIBILITY FIXES */
+        h1, h2, h3, h4, .stMarkdown, p, label, .stCheckbox {
+            color: #1f2937 !important; /* Dark text for cards */
         }
         
-        /* Headers */
-        h1, h2, h3 {
-            color: #111827;
+        /* Make text inside the sidebar white/light for contrast if sidebar is dark, 
+           BUT standard streamlit sidebar is light. Let's keep cards white. */
+        
+        /* CARDS (Glassmorphism Containers) */
+        div[data-testid="stVerticalBlock"] > div {
+            background-color: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            backdrop-filter: blur(10px);
         }
+        
+        /* SIDEBAR SPECIFIC STYLING */
+        section[data-testid="stSidebar"] {
+            background-color: #f9fafb; /* Light gray sidebar */
+            border-right: 1px solid #e5e7eb;
+        }
+        section[data-testid="stSidebar"] div[data-testid="stVerticalBlock"] > div {
+            background-color: transparent; /* Remove card effect in sidebar */
+            box-shadow: none;
+            padding: 0;
+        }
+
+        /* PRIMARY BUTTON */
+        div.stButton > button:first-child {
+            background-color: #2563EB;
+            color: white !important;
+            font-weight: 600;
+            border-radius: 8px;
+            border: none;
+            padding: 0.75rem 1rem;
+            transition: all 0.2s;
+        }
+        div.stButton > button:first-child:hover {
+            background-color: #1d4ed8;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+            transform: translateY(-1px);
+        }
+
+        /* STATUS BADGES */
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 9999px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .status-ready { background-color: #dcfce7; color: #166534; }
+        .status-waiting { background-color: #f3f4f6; color: #4b5563; }
+
     </style>
 """, unsafe_allow_html=True)
 
 # --- HELPER FUNCTIONS ---
-
 def generate_mock_zip():
-    """Generates a real ZIP file in memory with dummy content for the user to download."""
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
-        # Create dummy STL content
-        dummy_stl_content = "solid simulated_ear\n  facet normal 0 0 0\n    outer loop\n      vertex 0 0 0\n      vertex 1 0 0\n      vertex 0 1 0\n    endloop\n  endfacet\nendsolid simulated_ear"
-        
-        # Add files to zip
-        zip_file.writestr("BASE.stl", dummy_stl_content)
-        zip_file.writestr("HELIX.stl", dummy_stl_content)
-        zip_file.writestr("ANTIHELIX.stl", dummy_stl_content)
-        zip_file.writestr("HOLES.stl", dummy_stl_content)
-        
-        # Add README
-        readme_text = """NAGATA GUIDE PRINT INSTRUCTIONS
-===============================
-
-1. PRINT SETTINGS:
-   - Material: Biocompatible Resin or PLA
-   - Layer Height: 0.1mm - 0.2mm
-   - Infill: 100%
-
-2. ASSEMBLY ORDER:
-   - Step A: Print BASE.stl first (0-2mm height).
-   - Step B: Align HELIX.stl and ANTIHELIX.stl on top.
-   - Step C: Ensure suture holes (HOLES.stl) are clear.
-
-3. SAFETY:
-   - Sterilize using standard autoclaving protocols before surgical use.
-   - Verify dimensions against physical anatomy.
-
-Generated by NagataGuide.
-"""
-        zip_file.writestr("README.txt", readme_text)
-        
+        dummy_stl = "solid mock\nendsolid mock"
+        zip_file.writestr("BASE.stl", dummy_stl)
+        zip_file.writestr("HELIX.stl", dummy_stl)
+        zip_file.writestr("README.txt", "Print BASE first.")
     buffer.seek(0)
     return buffer
 
 def create_mock_3d_plot():
-    """Creates a Plotly mesh that looks somewhat like a curved organic shape."""
-    # Generating a torus-like shape to represent an ear structure abstractly
     theta = np.linspace(0, 2*np.pi, 50)
     phi = np.linspace(0, 2*np.pi, 50)
     theta, phi = np.meshgrid(theta, phi)
@@ -111,205 +117,132 @@ def create_mock_3d_plot():
     x = (c + a*np.cos(theta)) * np.cos(phi)
     y = (c + a*np.cos(theta)) * np.sin(phi)
     z = a * np.sin(theta)
-
-    fig = go.Figure(data=[go.Surface(z=z, x=x, y=y, colorscale='Blues', opacity=0.8)])
+    fig = go.Figure(data=[go.Surface(z=z, x=x, y=y, colorscale='Blues', showscale=False)])
     fig.update_layout(
-        title='3D Guide Preview (Interactive)',
-        scene=dict(xaxis=dict(visible=False), yaxis=dict(visible=False), zaxis=dict(visible=False)),
-        margin=dict(l=0, r=0, b=0, t=30),
-        height=300
+        margin=dict(l=0, r=0, b=0, t=0),
+        scene=dict(xaxis=dict(visible=False), yaxis=dict(visible=False), zaxis=dict(visible=False), camera=dict(eye=dict(x=1.5, y=1.5, z=1.5))),
+        height=400,
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)'
     )
     return fig
 
 def create_segmentation_overlay(uploaded_image):
-    """Overlays a mock segmentation mask on the uploaded image."""
     img = Image.open(uploaded_image).convert("RGBA")
-    # Resize for consistency
-    img = img.resize((400, int(400 * img.height / img.width)))
-    
-    # Create a mask layer
+    img.thumbnail((600, 600))
     mask = Image.new('RGBA', img.size, (0,0,0,0))
     draw = ImageDraw.Draw(mask)
-    
-    # Draw a mock "Ear" shape (ellipse) in the center
     w, h = img.size
-    draw.ellipse((w*0.25, h*0.2, w*0.75, h*0.8), fill=(37, 99, 235, 100), outline=(37, 99, 235, 255))
-    
-    # Composite
+    draw.ellipse((w*0.3, h*0.2, w*0.7, h*0.8), fill=(37, 99, 235, 80), outline=(37, 99, 235, 255))
     return Image.alpha_composite(img, mask)
 
-# --- APP STATE MANAGEMENT ---
-if 'processed' not in st.session_state:
-    st.session_state.processed = False
-if 'processing_complete' not in st.session_state:
-    st.session_state.processing_complete = False
+# --- STATE ---
+if 'processed' not in st.session_state: st.session_state.processed = False
 
-# --- HEADER ---
-col1, col2 = st.columns([1, 5])
-with col1:
-    st.write("# 🦻") # Large Emoji Icon
-with col2:
-    st.title("NagataGuide")
-    st.caption("From 2D Photo to 3D Surgical Guide in One Click")
-
-st.markdown("---")
-
-# --- DEBUG / DEMO CONTROLS (Sidebar for Demo purposes) ---
+# --- SIDEBAR (SETUP) ---
 with st.sidebar:
-    st.header("Demo Controls")
-    simulate_failure = st.checkbox("Simulate Detection Failure", value=False)
-    st.info("Use this to test the error recovery flow described in the PRD.")
-
-# --- STEP 1: UPLOAD & CALIBRATE ---
-st.subheader("1. Upload & Calibrate")
-
-uploaded_file = st.file_uploader(
-    "Upload patient lateral view (JPG/PNG)", 
-    type=["jpg", "png"], 
-    help="Ensure neutral background and even lighting."
-)
-
-if uploaded_file:
-    # Preview Layout
-    col_preview, col_settings = st.columns([1, 2])
+    st.image("https://cdn-icons-png.flaticon.com/512/3004/3004458.png", width=50) # Medical icon
+    st.title("Setup")
+    st.markdown("### 1. Upload Data")
     
-    with col_preview:
-        image = Image.open(uploaded_file)
-        st.image(image, caption="Uploaded Preview", use_container_width=True)
+    uploaded_file = st.file_uploader("Patient Image (Lateral)", type=["jpg", "png"])
     
-    with col_settings:
-        st.write("**Calibration Settings**")
-        has_ruler = st.checkbox("☑️ Image includes a physical ruler", value=True)
-        
+    st.markdown("### 2. System Status")
+    if uploaded_file:
+        st.markdown('<span class="status-badge status-ready">✅ Image Ready</span>', unsafe_allow_html=True)
+    else:
+        st.markdown('<span class="status-badge status-waiting">⏳ Waiting for input</span>', unsafe_allow_html=True)
+    
+    if uploaded_file:
+        st.markdown("---")
+        st.markdown("### 3. Calibration")
+        has_ruler = st.checkbox("Image includes ruler", value=True)
         if not has_ruler:
-            with st.container():
-                st.info("📏 Manual Calibration Required")
-                px_per_mm = st.number_input(
-                    "Pixels per millimeter", 
-                    min_value=1, max_value=200, value=15,
-                    help="Measure a known landmark on screen to determine this value."
-                )
-                st.caption("Example: If a 10mm mole is 150px wide, enter 15.")
-
+            st.number_input("Pixels per 10mm", value=150)
+            
     st.markdown("---")
+    st.info("ℹ️ **Privacy Note**: All processing happens locally in this session. No data is stored permanently.")
 
-    # --- STEP 2: PROCESSING ---
+# --- MAIN CONTENT ---
+
+# 1. Header Section
+col_head_1, col_head_2 = st.columns([3, 1])
+with col_head_1:
+    st.title("NagataGuide Pro")
+    st.markdown("**Automated Microtia Reconstruction Planner**")
+
+# 2. Main Workspace
+if not uploaded_file:
+    # Empty State (Showcase Style)
+    st.markdown("<br>", unsafe_allow_html=True)
+    container = st.container()
+    with container:
+        st.markdown("""
+        <div style="text-align: center; padding: 40px; border: 2px dashed #cbd5e1; border-radius: 12px; background: rgba(255,255,255,0.5);">
+            <h2 style="color: #64748b !important;">No Patient Data Uploaded</h2>
+            <p style="color: #64748b;">Upload a lateral ear photograph from the sidebar to begin the 3D generation workflow.</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Features Showcase
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            st.markdown("#### ⚡ Fast Analysis")
+            st.caption("2D to 3D in < 45 seconds")
+        with c2:
+            st.markdown("#### 📐 Auto-Calibration")
+            st.caption("Pixel-perfect scaling logic")
+        with c3:
+            st.markdown("#### 🖨️ Print Ready")
+            st.caption("Direct STL exports")
+
+else:
+    # Active State
     
-    # Dynamic CTA Button
-    btn_text = "✨ Generate Surgical Guide"
+    # Action Bar
+    col_act_1, col_act_2 = st.columns([1, 4])
+    with col_act_1:
+        if st.button("✨ Generate Guide", type="primary", use_container_width=True):
+            with st.spinner("Processing anatomy..."):
+                time.sleep(2) # Fake processing
+                st.session_state.processed = True
+    
     if st.session_state.processed:
-        btn_text = "🔄 Regenerate Guide"
-
-    if st.button(btn_text, type="primary"):
-        st.session_state.processed = False
-        st.session_state.processing_complete = False
+        # Results Dashboard
+        tab1, tab2, tab3 = st.tabs(["🔍 Surgical Preview", "🧊 3D Models", "📥 Print Kit"])
         
-        # Live Progress Tracker
-        with st.status("Initializing NagataGuide Engine...", expanded=True) as status:
-            
-            # Phase 1: Detection
-            st.write("🔍 Detecting ear anatomy...")
-            time.sleep(1.5) # Simulate processing
-            
-            if simulate_failure:
-                status.update(label="❌ Detection Failed", state="error")
-                st.error("Could not identify ear structure.")
-                col_err, col_tips = st.columns([1, 2])
-                with col_err:
-                     st.image("https://placehold.co/200x200/FF0000/FFFFFF?text=X", caption="Detection Error")
-                with col_tips:
-                    st.markdown("""
-                    **Try these fixes:**
-                    * 📸 Use a full lateral view (side profile).
-                    * 💡 Improve lighting (reduce shadows).
-                    * 🔄 Center the ear in the frame.
-                    """)
-                st.stop() # Stop execution here
-            
-            # Phase 2: Segmentation
-            st.write("✂️ Segmenting cartilage and soft tissue...")
-            time.sleep(2)
-            
-            # Phase 3: 3D Modeling
-            st.write("🧊 Generating 3D parametric models (Base, Helix, Antihelix)...")
-            time.sleep(1.5)
-            
-            status.update(label="✅ Surgical guide ready! Review below.", state="complete", expanded=False)
-            st.session_state.processed = True
-            st.session_state.processing_complete = True
-
-    # --- STEP 3: RESULTS & STEP 4: DOWNLOAD ---
-    if st.session_state.processing_complete:
-        st.success("Analysis complete. Review the surgical preview before downloading the print kit.")
-        
-        # Tabs for Surgical Logic
-        tab1, tab2, tab3 = st.tabs(["1. Surgical Preview", "2. 3D Guides", "3. Print Kit"])
-        
-        # TAB 1: 2D Validation
         with tab1:
-            st.markdown("### Anatomical Segmentation")
-            st.caption("Verify that the overlay correctly maps to the patient's anatomy.")
-            
-            col_orig, col_seg = st.columns(2)
-            with col_orig:
-                st.image(image, caption="Original Patient Image", use_container_width=True)
-            with col_seg:
-                # Generate overlay on the fly
-                overlay_img = create_segmentation_overlay(uploaded_file)
-                st.image(overlay_img, caption="AI Segmentation Mask", use_container_width=True)
-            
-            st.info("Legend: **Blue Region** = Target Reconstruction Area")
-
-        # TAB 2: 3D Inspection
+            col_preview_1, col_preview_2 = st.columns(2)
+            with col_preview_1:
+                st.image(uploaded_file, caption="Original Input", use_container_width=True)
+            with col_preview_2:
+                overlay = create_segmentation_overlay(uploaded_file)
+                st.image(overlay, caption="AI Segmentation Mask", use_container_width=True)
+                
         with tab2:
-            st.markdown("### 3D Model Inspection")
-            st.caption("Interactive preview of the generated guide geometry.")
-            
-            # Plotly Chart
-            fig = create_mock_3d_plot()
-            st.plotly_chart(fig, use_container_width=True)
-            
-            col_info1, col_info2, col_info3 = st.columns(3)
-            col_info1.metric("Base Thickness", "2.0 mm")
-            col_info2.metric("Guide Height", "15.0 mm")
-            col_info3.metric("Suture Holes", "12 Count")
-
-        # TAB 3: Download
+            st.markdown("### Interactive Geometry Inspection")
+            c_3d_1, c_3d_2 = st.columns([2, 1])
+            with c_3d_1:
+                fig = create_mock_3d_plot()
+                st.plotly_chart(fig, use_container_width=True)
+            with c_3d_2:
+                st.markdown("**Metrics**")
+                st.metric("Base Height", "2.1 mm", "+0.1mm")
+                st.metric("Cartilage Vol", "14.2 cc")
+                st.metric("Est. Print Time", "4h 20m")
+                
         with tab3:
-            st.markdown("### 📥 Manufacturing Export")
-            st.markdown("""
-            This package contains all files necessary for 3D printing and surgical planning.
-            """)
+            st.success("Files ready for manufacturing.")
+            zip_data = generate_mock_zip()
+            timestamp = datetime.now().strftime("%Y%m%d")
             
-            # Prepare ZIP
-            zip_buffer = generate_mock_zip()
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M")
-            file_name = f"NagataGuide_{timestamp}.zip"
-            
-            # Primary CTA
             st.download_button(
-                label="📥 Download Full Print-Ready Kit (ZIP)",
-                data=zip_buffer,
-                file_name=file_name,
+                label="📥 Download STL Package",
+                data=zip_data,
+                file_name=f"Nagata_{timestamp}.zip",
                 mime="application/zip",
-                type="primary" # Highlighting this as the main action
+                type="primary"
             )
             
-            with st.expander("Show Kit Contents"):
-                st.markdown("""
-                * `BASE.stl` - The foundation plate (print first).
-                * `HELIX.stl` - Outer rim guide.
-                * `ANTIHELIX.stl` - Inner cartilage guide.
-                * `HOLES.stl` - Suture marker template.
-                * `README.txt` - Clinical parameters and print settings.
-                """)
-
-# --- FOOTER ---
-st.markdown("---")
-st.markdown("""
-<div style='text-align: center; color: #6B7280; font-size: 0.8rem;'>
-    <strong>⚠️ CLINICAL DISCLAIMER</strong><br>
-    NagataGuide is a surgical planning aid. It does not replace clinical judgment, 3D imaging, or intraoperative assessment. 
-    Validate all guides against patient anatomy before use. Not a medical device.
-</div>
-""", unsafe_allow_html=True)
+            st.markdown("### Included Files")
+            st.code("BASE.stl\nHELIX.stl\nANTIHELIX.stl\nREADME.txt")
