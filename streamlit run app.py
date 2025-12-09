@@ -29,7 +29,7 @@ st.markdown("""
             background-attachment: fixed;
         }
 
-        /* OVERLAY to darken background */
+        /* OVERLAY to darken background - INCREASED OPACITY FOR CONTRAST */
         .stApp > header { background: transparent; }
         .stApp::before {
             content: "";
@@ -38,24 +38,42 @@ st.markdown("""
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(243, 244, 246, 0.85); /* Light overlay for readability */
+            background: rgba(243, 244, 246, 0.92); /* Increased opacity to 92% to mute background image */
             pointer-events: none;
             z-index: 0;
         }
 
-        /* CARD STYLING (General) */
+        /* CARD STYLING (General) - SOLID WHITE FOR CONTRAST */
         div.stContainer {
-            background-color: rgba(255, 255, 255, 0.9);
+            background-color: #ffffff; /* Solid white, no transparency */
             border-radius: 12px;
-            padding: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.5);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            backdrop-filter: blur(10px);
+            padding: 24px;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
         }
 
-        /* TEXT COLORS */
-        h1, h2, h3, h4, .stMarkdown, p, label {
-            color: #111827 !important;
+        /* TEXT COLORS - PURE BLACK & BOLD */
+        h1, h2, h3, h4 {
+            color: #000000 !important;
+            font-weight: 700 !important;
+        }
+        
+        .stMarkdown, p, div {
+            color: #1f2937 !important; /* Very dark gray for body text */
+            font-weight: 500; /* Medium weight for better legibility */
+        }
+        
+        label, .stTextInput > label, .stNumberInput > label, .stCheckbox > label {
+            color: #111827 !important; /* Dark text for inputs */
+            font-weight: 600 !important;
+        }
+        
+        /* Metric Labels */
+        div[data-testid="stMetricLabel"] > label {
+            color: #374151 !important;
+        }
+        div[data-testid="stMetricValue"] {
+            color: #000000 !important;
         }
 
         /* BUTTONS */
@@ -65,6 +83,7 @@ st.markdown("""
             border: none;
             padding: 0.75rem 1rem;
             border-radius: 8px;
+            font-weight: 600;
         }
         div.stButton > button:first-child:hover {
             background-color: #1d4ed8;
@@ -72,14 +91,15 @@ st.markdown("""
 
         /* STATUS BADGES */
         .status-badge {
-            padding: 4px 12px;
-            border-radius: 9999px;
-            font-size: 0.85rem;
-            font-weight: 600;
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 700;
             display: inline-block;
+            text-align: center;
         }
-        .status-ready { background-color: #dcfce7; color: #166534; border: 1px solid #86efac; }
-        .status-waiting { background-color: #f3f4f6; color: #4b5563; border: 1px solid #e5e7eb; }
+        .status-ready { background-color: #dcfce7; color: #14532d; border: 1px solid #14532d; }
+        .status-waiting { background-color: #f3f4f6; color: #1f2937; border: 1px solid #9ca3af; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -165,9 +185,9 @@ if not uploaded_file:
     # Empty State (Showcase Style)
     with st.container():
         st.markdown("""
-        <div style="text-align: center; padding: 40px; border: 2px dashed #9ca3af; border-radius: 12px; background: rgba(255,255,255,0.4);">
-            <h2 style="color: #4b5563 !important; margin-bottom: 10px;">No Patient Data Uploaded</h2>
-            <p style="color: #6b7280; font-size: 1.1rem;">Upload a lateral ear photograph from the sidebar to begin.</p>
+        <div style="text-align: center; padding: 40px; border: 2px dashed #6b7280; border-radius: 12px; background: #ffffff;">
+            <h2 style="color: #111827 !important; margin-bottom: 10px;">No Patient Data Uploaded</h2>
+            <p style="color: #374151; font-size: 1.1rem; font-weight: 500;">Upload a lateral ear photograph from the sidebar to begin.</p>
         </div>
         """, unsafe_allow_html=True)
         
