@@ -354,19 +354,51 @@ else:
 
                 with tab2:
                     st.markdown("### Generated Geometry")
-                    # Create a simple point cloud visualization of the Base mesh
+                    
                     if data["meshes"][0]:
                         mesh_obj = data["meshes"][0]
-                        # Extract some points for plotting
-                        pts = mesh_obj.vectors.reshape(-1, 3)
-                        # Downsample for plotly performance
-                        pts = pts[::10] 
+                        vectors = mesh_obj.vectors # Shape: (N_faces, 3, 3)
+                        
+                        # Optimization: Downsample FACES (not points) to ensure browser performance
+                        # Only keep every Nth face if mesh is very dense
+                        if len(vectors) > 5000:
+                            vectors = vectors[::2]
+                        
+                        # Flatten coordinates for Plotly
+                        # X = [x1, x2, x3, x1, x2, x3...]
+                        x = vectors[:, :, 0].flatten()
+                        y = vectors[:, :, 1].flatten()
+                        z = vectors[:, :, 2].flatten()
+                        
+                        # Define triangle indices explicitly
+                        # [0, 1, 2], [3, 4, 5], ...
+                        num_triangles = len(vectors)
+                        i_idxs = np.arange(0, num_triangles * 3, 3)
+                        j_idxs = np.arange(1, num_triangles * 3, 3)
+                        k_idxs = np.arange(2, num_triangles * 3, 3)
                         
                         fig = go.Figure(data=[go.Mesh3d(
-                            x=pts[:,0], y=pts[:,1], z=pts[:,2],
-                            color='lightblue', opacity=0.50
+                            x=x, y=y, z=z,
+                            i=i_idxs, j=j_idxs, k=k_idxs,
+                            color='#93c5fd', # Light Blue
+                            opacity=1.0,
+                            flatshading=True,
+                            lighting=dict(ambient=0.5, diffuse=0.8, roughness=0.1, specular=0.1)
                         )])
-                        fig.update_layout(scene=dict(aspectmode='data'), margin=dict(l=0,r=0,b=0,t=0), height=400)
+                        
+                        # Layout to make it look like a CAD viewer
+                        fig.update_layout(
+                            scene=dict(
+                                aspectmode='data',
+                                xaxis=dict(visible=False),
+                                yaxis=dict(visible=False),
+                                zaxis=dict(visible=False),
+                                bgcolor='rgba(0,0,0,0)'
+                            ),
+                            margin=dict(l=0,r=0,b=0,t=0), 
+                            height=400,
+                            paper_bgcolor='rgba(0,0,0,0)'
+                        )
                         st.plotly_chart(fig, use_container_width=True)
                     else:
                         st.warning("Could not generate 3D mesh from image. Try a cleaner image.")
