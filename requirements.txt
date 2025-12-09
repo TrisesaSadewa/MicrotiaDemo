@@ -1,4 +1,8 @@
 streamlit
 plotly
 numpy
+opencv-python-headless
+scipy
+numpy-stl
+ultralytics
 Pillow
